@@ -17,7 +17,7 @@ EngineSquare는 웹 애플리케이션과 API 서버에서 발생하는 보안 �
 | 개인 역할 | API·웹·SIEM·SOAR 연동 결과를 개인 실행 환경에서 재현하고 제출용 문서로 정리 |
 | 개인 기여 범위 | n8n Discord Incoming Webhook 전환 및 시나리오 1~3 워크플로우 민감정보 제거, 시나리오 3 웹 UI·워크플로우 반영, 루트 테스트 보완, 전체 설치·실행·검증 기록 작성 |
 
-세부 근거와 검증 결과는 [`portfolio/개인_포트폴리오_정리.md`](./portfolio/개인_포트폴리오_정리.md)와 [`portfolio/검증_기록.md`](./portfolio/검증_기록.md)에 정리했습니다. 실제 화면 증적은 [`증적캡처_부록.pdf`](./portfolio/증적캡처_부록.pdf)와 [`portfolio/evidence/`](./portfolio/evidence/)에 모았습니다. 팀 공통 코드와 팀원 작업을 개인 단독 구현으로 주장하지 않고, 개인이 직접 수정·검증한 범위만 별도로 표시했습니다.
+세부 근거와 검증 결과는 [`portfolio/개인_포트폴리오_정리.md`](./portfolio/개인_포트폴리오_정리.md)와 [`portfolio/검증_기록.md`](./portfolio/검증_기록.md)에 정리했습니다. 개인 포트폴리오 PDF([`EngineSquare_개인포트폴리오.pdf`](./portfolio/EngineSquare_개인포트폴리오.pdf)) 뒤에 전체 증적 부록을 포함했고, 부록 원본은 [`증적캡처_부록.pdf`](./portfolio/증적캡처_부록.pdf)와 [`portfolio/evidence/`](./portfolio/evidence/)에 별도로 모았습니다. 팀 공통 코드와 팀원 작업을 개인 단독 구현으로 주장하지 않고, 개인이 직접 수정·검증한 범위만 별도로 표시했습니다.
 
 ### 새 PC 또는 VM에서 시작하는 순서
 
