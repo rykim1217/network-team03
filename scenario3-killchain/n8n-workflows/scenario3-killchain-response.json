@@ -119,9 +119,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://discord.com/api/v10/channels/1567368969524879513/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "https://discord.com/api/webhooks/DISCORD_WEBHOOK_ID/DISCORD_WEBHOOK_TOKEN",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"embeds\": [\n    {\n      \"title\": \"🚨 긴급 — 킬체인 전체 단계 탐지 (CRITICAL)\",\n      \"color\": 15548997,\n      \"fields\": [\n        {\"name\": \"공격 IP\", \"value\": \"{{$json.client_ip}}\", \"inline\": true},\n        {\"name\": \"상태\", \"value\": \"CRITICAL\", \"inline\": true},\n        {\"name\": \"탐지 단계\", \"value\": \"{{$json.stages}}\", \"inline\": false},\n        {\"name\": \"인시던트\", \"value\": \"{{$json.incident_id}}\", \"inline\": false}\n      ],\n      \"footer\": {\"text\": \"EngineSquare · 시나리오3\"}\n    }\n  ],\n  \"components\": [\n    {\n      \"type\": 1,\n      \"components\": [\n        {\n          \"type\": 2,\n          \"style\": 5,\n          \"label\": \"실시간 대시보드 열기\",\n          \"emoji\": {\"name\": \"📊\"},\n          \"url\": \"http://127.0.0.1:5001/dashboard\"\n        }\n      ]\n    }\n  ]\n}",
@@ -135,12 +133,6 @@
         1152,
         -96
       ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "V3bgLs88kqaqxHaa",
-          "name": "Header Auth account 2"
-        }
-      },
       "onError": "continueRegularOutput"
     },
     {
@@ -171,9 +163,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://discord.com/api/v10/channels/1567368969524879513/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "https://discord.com/api/webhooks/DISCORD_WEBHOOK_ID/DISCORD_WEBHOOK_TOKEN",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"embeds\": [\n    {\n      \"title\": \"⚠️ 경고 — 킬체인 1~2단계 탐지\",\n      \"color\": 16763904,\n      \"fields\": [\n        {\"name\": \"공격 IP\", \"value\": \"{{$json.body.client_ip}}\", \"inline\": true},\n        {\"name\": \"상태\", \"value\": \"WARNING\", \"inline\": true},\n        {\"name\": \"탐지 단계\", \"value\": \"{{$json.body.stages}}\", \"inline\": false}\n      ],\n      \"footer\": {\"text\": \"EngineSquare · 시나리오3\"}\n    }\n  ],\n  \"components\": [\n    {\n      \"type\": 1,\n      \"components\": [\n        {\n          \"type\": 2,\n          \"style\": 5,\n          \"label\": \"실시간 대시보드 열기\",\n          \"emoji\": {\"name\": \"📊\"},\n          \"url\": \"http://127.0.0.1:5001/dashboard\"\n        }\n      ]\n    }\n  ]\n}",
@@ -187,12 +177,6 @@
         480,
         416
       ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "V3bgLs88kqaqxHaa",
-          "name": "Header Auth account 2"
-        }
-      },
       "onError": "continueRegularOutput"
     },
     {

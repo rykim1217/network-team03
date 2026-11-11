@@ -5,6 +5,50 @@ EngineSquare는 웹 애플리케이션과 API 서버에서 발생하는 보안 �
 
 ---
 
+## 개인 포트폴리오 제출 정보
+
+이 저장소는 팀 프로젝트를 개인 저장소로 정리한 버전입니다. 원본 팀 저장소의 코드와 문서를 기반으로 하며, 개인 검증·정리 작업은 아래에 구분해 기록했습니다.
+
+| 항목 | 내용 |
+| :--- | :--- |
+| 팀 원본 저장소 | https://github.com/altdmfk/network-team03 |
+| 개인 저장소 | https://github.com/rykim1217/network-team03 |
+| 팀원(커밋·PR 기준) | `altdmfk`, `onedotfour88`, `rykim1217` |
+| 개인 역할 | API·웹·SIEM·SOAR 연동 결과를 개인 실행 환경에서 재현하고 제출용 문서로 정리 |
+| 개인 기여 범위 | n8n Discord Incoming Webhook 전환 및 시나리오 1~3 워크플로우 민감정보 제거, 시나리오 3 웹 UI·워크플로우 반영, 루트 테스트 보완, 전체 설치·실행·검증 기록 작성 |
+
+세부 근거와 검증 결과는 [`portfolio/개인_포트폴리오_정리.md`](./portfolio/개인_포트폴리오_정리.md)와 [`portfolio/검증_기록.md`](./portfolio/검증_기록.md)에 정리했습니다. 실제 화면 증적은 [`증적캡처_부록.pdf`](./portfolio/증적캡처_부록.pdf)와 [`portfolio/evidence/`](./portfolio/evidence/)에 모았습니다. 팀 공통 코드와 팀원 작업을 개인 단독 구현으로 주장하지 않고, 개인이 직접 수정·검증한 범위만 별도로 표시했습니다.
+
+### 새 PC 또는 VM에서 시작하는 순서
+
+1. Docker Desktop, Python 3.13 이상, Git을 설치합니다.
+2. 저장소를 clone하고 프로젝트 루트로 이동합니다.
+3. `.env.example`을 `.env`로 복사한 뒤 실제 로컬 수집 키만 입력합니다. `.env`는 커밋하지 않습니다.
+4. MySQL, 미들웨어, Graylog, Wazuh, n8n을 먼저 기동합니다.
+5. `.\start-enginesquare.ps1`을 실행해 API(:5000), 웹(:5001), Wazuh 전달기를 기동합니다.
+6. `/health`, 웹 대시보드, Graylog, n8n 접속을 확인한 뒤 시나리오 테스트를 순서대로 실행합니다.
+
+| 구성 | 접속 주소 또는 포트 | 비고 |
+| :--- | :--- | :--- |
+| 공용 API | `http://127.0.0.1:5000` | `/health`, 자동 대응 API |
+| 공통 웹·대시보드 | `http://127.0.0.1:5001` | `/dashboard`, `/admin` |
+| Middleware ingestor | `http://127.0.0.1:8000` | `/health`, `/ingest` |
+| Middleware worker metrics | `http://127.0.0.1:9100` | `/metrics` |
+| MySQL | `127.0.0.1:3306` | `enginesquare` 데이터베이스 |
+| Graylog | `http://127.0.0.1:9000` | GELF HTTP 입력 `12201` |
+| n8n | `http://127.0.0.1:5678` | 워크플로우 import 후 Publish/활성화 |
+| Wazuh | manager `1514/1515`, dashboard `443` | Docker 구성에 따라 노출 |
+| pfSense | `https://172.16.50.2` | 시나리오 3 네트워크 실습 환경에서만 필요 |
+
+### 민감정보 및 설정 파일 원칙
+
+- 실제 `.env`, API 키 원문, Wazuh 인증정보, Discord 웹훅 URL은 저장소에 포함하지 않습니다.
+- 저장소에는 `.env.example`, Graylog 규칙, Wazuh 규칙, n8n JSON 워크플로우만 예시값으로 제공합니다.
+- 현재 tracked 파일 기준 실제 Discord 웹훅 URL·구형 Discord Bot 토큰·추적된 `.env`는 발견되지 않았습니다.
+- 로컬 실행 로그와 `security_events.jsonl`은 `.gitignore`로 제외됩니다.
+
+---
+
 ## 1. 시스템 구조 및 디렉터리 안내
 
 ```text

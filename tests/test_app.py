@@ -1,22 +1,94 @@
-import unittest
 import json
+import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import app as api_app
 
 
+class FakeSecurityStore:
+    """Small in-memory stand-in for the MySQL SecurityStore used by unit tests."""
+
+    def __init__(self):
+        self.records = {
+            "test-key-01": {
+                "api_key_id": "key-001",
+                "status": "active",
+                "allowed_ips": ["127.0.0.1"],
+                "label": "unit-test",
+            }
+        }
+        self.blocked_ips = set()
+
+    def find(self, raw_api_key):
+        record = self.records.get(raw_api_key)
+        return dict(record) if record else None
+
+    def find_by_id(self, api_key_id):
+        for record in self.records.values():
+            if record["api_key_id"] == api_key_id:
+                return dict(record)
+        return None
+
+    def is_blocked(self, ip):
+        return ip in self.blocked_ips
+
+    def blocks(self):
+        return [{"ip": ip} for ip in sorted(self.blocked_ips)]
+
+    def record_allowed_request(self, _event):
+        return None
+
+    def record_denied_request(self, _event):
+        return True
+
+    def respond(self, api_key_id, reason, ip, incident_id):
+        record = self.find_by_id(api_key_id)
+        if record is None or record["status"] != "active":
+            return None
+
+        raw_replacement = "test-key-01-renewed"
+        replacement_id = "key-001-renewed"
+        for raw_key, stored in self.records.items():
+            if stored["api_key_id"] == api_key_id:
+                stored["status"] = "revoked"
+                break
+        self.records[raw_replacement] = {
+            "api_key_id": replacement_id,
+            "status": "active",
+            "allowed_ips": ["127.0.0.1"],
+            "label": "unit-test",
+        }
+        if ip not in {"unknown", "127.0.0.1"}:
+            self.blocked_ips.add(ip)
+        return {
+            "key_revoked": True,
+            "incident_id": incident_id or "INC-API-001",
+            "new_api_key_id": replacement_id,
+            "new_api_key": raw_replacement,
+            "ip_blocked": ip not in {"unknown", "127.0.0.1"},
+        }
+
+
 class MainApiServerTest(unittest.TestCase):
     def setUp(self):
-        api_app.API_KEYS.clear()
-        api_app.API_KEYS["test-key-01"] = {
-            "api_key_id": "key-001",
-            "status": "active",
-            "allowed_ips": {"127.0.0.1"},
-        }
+        self.store = FakeSecurityStore()
+        self.store_patch = patch.object(api_app, "security_store", self.store)
+        self.store_patch.start()
+        self.addCleanup(self.store_patch.stop)
+
+        self.log_path = Path(__file__).resolve().parent / ".test-security-events.jsonl"
+        self.log_path.unlink(missing_ok=True)
+        self.log_path_patch = patch.object(
+            api_app, "LOG_FILE", self.log_path
+        )
+        self.log_path_patch.start()
+        self.addCleanup(self.log_path_patch.stop)
+        self.addCleanup(self.log_path.unlink, missing_ok=True)
+
         api_app.REQUEST_COUNTS.clear()
         api_app.SECURITY_EVENTS.clear()
         api_app.INCIDENTS.clear()
-        api_app.BLOCKED_IPS.clear()
         api_app.MIDDLEWARE_INGEST_URL = ""
         api_app.MIDDLEWARE_API_KEY = ""
         self.client = api_app.app.test_client()
@@ -28,8 +100,7 @@ class MainApiServerTest(unittest.TestCase):
 
     def test_valid_api_key_is_allowed_and_logs_fixed_fields(self):
         response = self.client.get(
-            "/api/data",
-            headers={"X-API-Key": "test-key-01"},
+            "/api/data", headers={"X-API-Key": "test-key-01"}
         )
 
         self.assertEqual(response.status_code, 200)
@@ -45,8 +116,7 @@ class MainApiServerTest(unittest.TestCase):
 
     def test_invalid_api_key_is_rejected(self):
         response = self.client.get(
-            "/api/data",
-            headers={"X-API-Key": "wrong-key"},
+            "/api/data", headers={"X-API-Key": "wrong-key"}
         )
 
         self.assertEqual(response.status_code, 401)
@@ -73,8 +143,7 @@ class MainApiServerTest(unittest.TestCase):
     def test_middleware_forwarding_is_called_when_logging(self):
         with patch.object(api_app, "_forward_to_middleware") as forward:
             self.client.get(
-                "/api/data",
-                headers={"X-API-Key": "test-key-01"},
+                "/api/data", headers={"X-API-Key": "test-key-01"}
             )
 
         forward.assert_called_once()
@@ -102,13 +171,16 @@ class MainApiServerTest(unittest.TestCase):
 
         with patch.object(api_app, "urlopen", side_effect=fake_urlopen):
             self.client.get(
-                "/api/data",
-                headers={"X-API-Key": "test-key-01"},
+                "/api/data", headers={"X-API-Key": "test-key-01"}
             )
 
         request_body = json.loads(captured["request"].data.decode("utf-8"))
-        self.assertEqual(captured["request"].full_url, "http://middleware.test/v1/ingest")
-        self.assertEqual(captured["request"].get_header("X-api-key"), "middleware-demo-key")
+        self.assertEqual(
+            captured["request"].full_url, "http://middleware.test/v1/ingest"
+        )
+        self.assertEqual(
+            captured["request"].get_header("X-api-key"), "middleware-demo-key"
+        )
         self.assertEqual(request_body["schema_version"], "1.0")
         self.assertEqual(request_body["severity"], 6)
         self.assertEqual(request_body["raw_payload"]["api_key_id"], "key-001")
@@ -131,13 +203,12 @@ class MainApiServerTest(unittest.TestCase):
         self.assertTrue(body["ip_blocked"])
         self.assertEqual(body["new_api_key_id"], "key-001-renewed")
         self.assertEqual(body["new_api_key"], "test-key-01-renewed")
-        self.assertEqual(api_app.API_KEYS["test-key-01"]["status"], "revoked")
-        self.assertIn("10.10.10.10", api_app.BLOCKED_IPS)
+        self.assertEqual(self.store.find_by_id("key-001")["status"], "revoked")
+        self.assertIn("10.10.10.10", self.store.blocked_ips)
         self.assertEqual(api_app.INCIDENTS[0]["incident_id"], "INC-API-001")
 
         new_key_response = self.client.get(
-            "/api/data",
-            headers={"X-API-Key": body["new_api_key"]},
+            "/api/data", headers={"X-API-Key": body["new_api_key"]}
         )
         self.assertEqual(new_key_response.status_code, 200)
         self.assertEqual(

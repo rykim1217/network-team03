@@ -194,12 +194,12 @@ Graylog가 내부망의 n8n 웹훅 엔드포인트로 HTTP 요청을 보낼 수 
    - **Normalize Brute Force Event**: 이벤트 페이로드에서 `client_ip`, `detection_reason` 등 정규화
    - **Block Attacker IP**: `{{ $env.AUTOMATION_WEBHOOK_BASE_URL || 'http://host.docker.internal:5000' }}/automation/revoke-key`를 호출하여 MySQL `blocked_ips` 테이블에 공격자 IP 등록 및 티켓 생성
    - **Format Alert Message**: 텍스트 알림 포맷 구성
-   - **Send Discord Notification**: Discord Bot REST API(`https://discord.com/api/v10/channels/1567368969524879513/messages`)로 리치 임베드 및 `[📊 실시간 대시보드 열기]` 링크 버튼(`style: 5`) 전송
+   - **Send Discord Notification**: Discord Incoming Webhook URL로 리치 임베드 및 `[📊 실시간 대시보드 열기]` 링크 버튼(`style: 5`) 전송
    - **Respond to Graylog**: Graylog에 성공 결과 반환
-5. Discord Bot 인증 방식 설정:
-   - 보안을 위해 Git 저장소 및 워크플로우 파일에는 실제 봇 토큰을 평문으로 남기지 않습니다.
-   - **n8n Credential로 등록할 경우 (권장)**: HTTP Request 노드(`Send Discord Notification`) → Authentication: `Generic Credential Type` → `Header Auth` 선택 후 Name: `Authorization`, Value: `Bot {전달받은_봇_토큰}`을 등록합니다.
-   - **환경 변수로 전달할 경우**: n8n 컨테이너 실행 환경 변수에 `DISCORD_BOT_TOKEN={전달받은_봇_토큰}`을 지정하면 자동으로 `Authorization: Bot {토큰}` 헤더가 주입됩니다.
+5. Discord 웹훅 설정:
+   - 보안을 위해 Git 저장소 및 워크플로우 파일에는 실제 웹훅 URL을 평문으로 커밋하지 않습니다.
+   - n8n의 `Send Discord Notification` 노드 URL에 본인 채널의 Incoming Webhook URL을 입력하고, Authentication은 `None`으로 둡니다.
+   - URL을 교체한 뒤 반드시 워크플로우를 저장하고 `Publish`합니다. 실제 URL이 노출되면 Discord에서 해당 웹훅을 재생성합니다.
 6. 우측 상단 토글을 Active 상태로 전환하여 자동 실행을 활성화합니다.
 
 ---
@@ -298,7 +298,7 @@ Architectural Verdict          | UNPROTECTED (188 lost) | 0 LOST, 0 DUPS (Observ
 python simulators/spike_test_demo.py --spike-count 20000
 ```
 
-4.5초 동안 초당 4,448건 속도로 20,004건을 수집합니다. 최대 18,501건을 WAL 디스크에 버퍼링한 뒤 초당 500건 속도로 37.4초 동안 드레인합니다. 실행 완료 후 `Sent (20,004) == Received (20,004) == Forwarded (20,004) == Graylog Stored (20,004)` 등 5단계 전 구간에서 원장 수량이 일치하고 유실이 0건(0.00%)임을 확인합니다.
+스크립트의 기본 시나리오는 약 20,004건을 수집한 뒤 WAL에 버퍼링하고 초당 500건 이하로 드레인하는 것입니다. 최신 개인 검증에서는 최종 `received=20,005`, `forwarded=20,005`, `dropped=0`, `DLQ=0`, `queue lag=0`을 확인했습니다. 테스트 중 별도 백그라운드 이벤트 1건이 함께 집계되어 `sent=20,004`와 정확히 일치하지 않았으므로, 엄격한 exact-count assertion은 실패했습니다. 따라서 현재 실측 결과는 “백그라운드 이벤트 1건 포함, 유실 0건으로 최종 drain 완료”로 기록하며, 정확한 원장 대사를 위해서는 run id 격리가 필요합니다.
 
 ---
 
